@@ -1,5 +1,5 @@
 # Calorie-Tracker
-This Calorie Tracker JavaScript application was created with vanilla JS. No frameworks. For UI/UX is created using Materialize CSS.
+This Calorie Tracker JavaScript application was created with vanilla JS. No frameworks. UI/UX is created using Materialize CSS.
 
 # App Features
 
