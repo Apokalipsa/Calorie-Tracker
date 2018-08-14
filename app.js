@@ -57,6 +57,18 @@ const ItemController = (function(){  // I.F.I. Function = self invoked
 
       return newItem;
     },
+    getTotalCalories : function(){
+        let total = 0;
+        // loop through the data arry 
+        data.items.forEach( function(item){
+            total += item.calories;
+        });
+        // set total calculation in data structure
+        data.totalCalories = total;
+        // Return total 
+        return data.totalCalories;
+        
+    },
     logData: function(){
       return data;
     }
@@ -69,7 +81,8 @@ const UIController = (function(){  // I.F.I. Function
         itemList: '#item-list',
         addBtn: '.add-btn',
         itemNameInput: '#item-name',
-        itemCaloriesInput: '#item-calories'
+        itemCaloriesInput: '#item-calories',
+        totalCalories : '.total-calories'
       }
       
       // Public methods
@@ -123,6 +136,10 @@ const UIController = (function(){  // I.F.I. Function
         hideList :function(){
             document.querySelector(UISelectors.itemList).style.display = 'none';
         },
+        showTotalCalories : function(totalCalories){
+            document.querySelector(UISelectors.totalCalories).textContent = totalCalories;
+
+        },
         getSelectors: function(){
           return UISelectors;
         }
@@ -153,8 +170,12 @@ const App = (function(ItemCtrl, UICtrl){
         // Add item in UI list
         UIController.addNewItemInList(newItem);
       }
-
-      // clear input fields
+      // Get total caories
+      const totalCalories = ItemController.getTotalCalories();
+       
+      // show up total calories to UI
+      UIController.showTotalCalories(totalCalories);
+       // clear input fields
       UIController.clearInput();
   
       e.preventDefault();
@@ -175,6 +196,11 @@ const App = (function(ItemCtrl, UICtrl){
        UIController.addItemToList(items);
 
         }
+        // Get total caories
+       const totalCalories = ItemController.getTotalCalories();
+       
+       // show up total calories to UI
+       UIController.showTotalCalories(totalCalories);
         // Load event listeners
         loadEventListeners();
       }
