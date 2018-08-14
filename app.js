@@ -69,6 +69,39 @@ const ItemController = (function(){  // I.F.I. Function = self invoked
         return data.totalCalories;
         
     },
+    getItemById: function (id){
+        let found = 0;
+        data.items.forEach(function(item){
+            if(item.id === id){
+                found = item;
+            }
+        });
+        return found;
+    },
+    // update current item in the data structure not UI
+    updateItem: function(name, calories){
+        // Calories to number
+        calories = parseInt(calories);
+  
+        let found = null;
+  
+        data.items.forEach(function(item){
+          if(item.id === data.currentItem.id){
+            item.name = name;
+            item.calories = calories;
+            found = item;
+          }
+        });
+        return found;
+      },
+    setCurrentItem : function(item){
+    data.currentItem = item;
+    },
+    geCurrentItem : function(){
+        return data.currentItem;
+
+    },
+   
     logData: function(){
       return data;
     }
@@ -82,7 +115,12 @@ const UIController = (function(){  // I.F.I. Function
         addBtn: '.add-btn',
         itemNameInput: '#item-name',
         itemCaloriesInput: '#item-calories',
-        totalCalories : '.total-calories'
+        totalCalories : '.total-calories',
+        updateBtn : '.update-btn',
+        deleteBtn : '.delete-btn',
+        backtBtn : '.back-btn',
+        listItems : '#item-list li'
+
       }
       
       // Public methods
@@ -94,7 +132,7 @@ const UIController = (function(){  // I.F.I. Function
             html += `<li class="collection-item" id="item-${item.id}">
             <strong>${item.name}: </strong> <em>${item.calories} Calories</em>
             <a href="#" class="secondary-content">
-            <i class="material-icons ">border_color</i>
+            <i class="edit-item material-icons">border_color</i>
             </a>
           </li>`;
           });
@@ -121,23 +159,65 @@ const UIController = (function(){  // I.F.I. Function
             li.innerHTML = `
             <strong>${item.name}: </strong> <em>${item.calories} Calories</em>
             <a href="#" class="secondary-content">
-            <i class="material-icons ">border_color</i>
+            <i class="edit-item material-icons">border_color</i>
             </a>
             `;
            // insert item 
            document.querySelector(UISelectors.itemList).insertAdjacentElement('beforeend',li)
         },
+        //
+        updateListItem: function(item){
+            let listItems = document.querySelectorAll(UISelectors.listItems);
+      
+            // Turn Node list into array
+            listItems = Array.from(listItems);
+      
+            listItems.forEach(function(listItem){
+              const itemID = listItem.getAttribute('id');
+      
+              if(itemID === `item-${item.id}`){
+                document.querySelector(`#${itemID}`).innerHTML = `<strong>${item.name}: </strong> <em>${item.calories} Calories</em>
+                <a href="#" class="secondary-content">
+                <i class="edit-item material-icons">border_color</i>
+                </a>`;
+              }
+            });
+          },
         clearInput : function(){
             document.querySelector(UISelectors.itemNameInput).value = '';
             document.querySelector(UISelectors.itemCaloriesInput).value = '';
 
         },
+        // add item in form when is edit state is activ
+        addItemToForm : function(){
+            document.querySelector(UISelectors.itemNameInput).value = ItemController.geCurrentItem().name;
+            document.querySelector(UISelectors.itemCaloriesInput).value = ItemController.geCurrentItem().calories;
+            UIController.showEditState();
+        },
         // function that will hide the line below the heading if list is empty
-        hideList :function(){
+        hideList : function(){
             document.querySelector(UISelectors.itemList).style.display = 'none';
         },
         showTotalCalories : function(totalCalories){
             document.querySelector(UISelectors.totalCalories).textContent = totalCalories;
+
+        },
+        
+        clearEditState : function(){
+            UIController.clearInput();
+            document.querySelector(UISelectors.updateBtn).style.display = 'none';
+            document.querySelector(UISelectors.deleteBtn).style.display = 'none';
+            document.querySelector(UISelectors.backtBtn).style.display = 'none';
+            document.querySelector(UISelectors.addBtn).style.display = 'inline';
+
+
+        },
+        // Add buttons ti UI when is edit state is active
+        showEditState : function(){
+            document.querySelector(UISelectors.updateBtn).style.display = 'inline';
+            document.querySelector(UISelectors.deleteBtn).style.display = 'inline';
+            document.querySelector(UISelectors.backtBtn).style.display = 'inline';
+            document.querySelector(UISelectors.addBtn).style.display = 'none';
 
         },
         getSelectors: function(){
@@ -148,20 +228,36 @@ const UIController = (function(){  // I.F.I. Function
 
 // App Controller represent application runtime state
 
-const App = (function(ItemCtrl, UICtrl){
+const App = (function(ItemController, UIController){
     // Load event listeners
     const loadEventListeners = function(){
       // Get UI selectors
-      const UISelectors = UICtrl.getSelectors();
+      const UISelectors = UIController.getSelectors();
   
       // Add item event
       document.querySelector(UISelectors.addBtn).addEventListener('click', itemAddSubmit);
-    }
+    
+      // Disable submit on enter and alow only that buttons on UI has a submition right
+    document.addEventListener('keypress', function(e){
+        if(e.keyCode === 13 || e.which === 13){
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+        // Edit icon click event
+    document.querySelector(UISelectors.itemList).addEventListener('click', itemEditClick);
+
+    // Update item event
+    document.querySelector(UISelectors.updateBtn).addEventListener('click', itemUpdateSubmit);
+  }
+
+     
   
     // Add item submit
     const itemAddSubmit = function(e){
       // Get form input from UI Controller
-      const input = UICtrl.getItemInput();
+      const input = UIController.getItemInput();
   
       // Check for name and calorie input
       if(input.name !== '' && input.calories !== ''){
@@ -180,19 +276,62 @@ const App = (function(ItemCtrl, UICtrl){
   
       e.preventDefault();
     }
-  
+  // click edit item
+  const itemEditClick = function(e){
+      if(e.target.classList.contains('edit-item')){
+     // get list item id
+     const listId = e.target.parentNode.parentNode.id;
+     // break into array
+     const listIdArray = listId.split('-');
+     // get the actual id like number
+     const id = parseInt(listIdArray[1]);
+     // get item
+     const itemToEdit = ItemController.getItemById(id);
+     
+     // set the current item
+     ItemController.setCurrentItem(itemToEdit);
+     // Add ite, to form when is edit mode state in action
+     UIController.addItemToForm();
+
+    }
+    e.preventDefault();
+
+  }
+  // Update item submith btn 
+  const itemUpdateSubmit = function(e){
+      // get item input 
+      const input = UIController.getItemInput();
+      // update item
+      const updatedItem = ItemController.updateItem(input.name, input.calories);
+      // Update UI
+      UIController.updateListItem(updatedItem);
+         // Get total caories
+         const totalCalories = ItemController.getTotalCalories();
+       
+         // show up total calories to UI
+         UIController.showTotalCalories(totalCalories);
+         
+         UIController.clearEditState();
+      
+      e.preventDefault();
+
+  }
     // Public methods
     return {
+        
       init: function(){
+        // Clear edit state
+        UIController.clearEditState();
         // Fetch items from data structure
-        const items = ItemCtrl.getItems();
+        const items = ItemController.getItems();
 
         // Chack if eny items
         if(items.length === 0){
+            
             UIController.hideList();
 
         }else{
-               // Populate list with items
+               // Fill list with items
        UIController.addItemToList(items);
 
         }
