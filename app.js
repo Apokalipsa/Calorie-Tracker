@@ -1,5 +1,68 @@
 // MODEL PATTERN
 // Storage Controller
+const StorageController = (function(){
+  // Public methods
+  return {
+    storeItem: function(item){
+      let items;
+      // Check if any items in ls
+      if(localStorage.getItem('items') === null){
+        items = [];
+        // Push new item
+        items.push(item);
+        // Set ls
+        localStorage.setItem('items', JSON.stringify(items));
+      } else {
+        // Get what is already in ls
+        items = JSON.parse(localStorage.getItem('items'));
+
+        // Push new item
+        items.push(item);
+
+        // Reset localstorage
+        localStorage.setItem('items', JSON.stringify(items));
+      }
+    },
+    getItemsFromStorage: function(){
+      let items;
+      if(localStorage.getItem('items') === null){
+        items = [];
+      
+      } else {
+        items = JSON.parse(localStorage.getItem('items'));
+      }
+      return items;
+    },
+    updateItemStorage : function(updatedItem){
+      // convert data intoobject format
+      let items = JSON.parse(localStorage.getItem('items'));
+      items.forEach(function(item, index){
+     if(updatedItem.id === item.id){
+       items.splice(index,1, updatedItem);
+     }
+      });
+      // Reset localstorage with updated items
+      localStorage.setItem('items', JSON.stringify(items));
+    },
+    deleteItemFromStorage : function(id){
+      // convert data intoobject format
+      let items = JSON.parse(localStorage.getItem('items'));
+      items.forEach(function(item, index){
+     if(id === item.id){
+       items.splice(index,1);
+     }
+      });
+      // Reset localstorage
+      localStorage.setItem('items', JSON.stringify(items));
+
+    },
+    clearItemsFromStorage : function(){
+      localStorage.removeItem('items');
+
+    }
+  }
+})();
+
 
 // Item Controller represent backend state
 const ItemController = (function(){  // I.F.I. Function = self invoked
@@ -12,23 +75,25 @@ const ItemController = (function(){  // I.F.I. Function = self invoked
     // Create state of data
     const data = {
         // add manueli some item data objects that can work with
-        items: [
-            // {
-            //     id : 0,
-            //     name:'Pizza',
-            //     calories: '300'
-            // },
-            // {
-            //     id : 1,
-            //     name:'Burek',
-            //     calories: '600'
-            // },
-            // {
-            //     id : 2,
-            //     name:'Cake',
-            //     calories: '200'
-            // }
-        ],
+        // items: [
+        //     // {
+        //     //     id : 0,
+        //     //     name:'Pizza',
+        //     //     calories: '300'
+        //     // },
+        //     // {
+        //     //     id : 1,
+        //     //     name:'Burek',
+        //     //     calories: '600'
+        //     // },
+        //     // {
+        //     //     id : 2,
+        //     //     name:'Cake',
+        //     //     calories: '200'
+        //     // }
+        // ],
+       
+        items: StorageController.getItemsFromStorage(),
         currentItem : null,
         totalCalories: 0
     }
@@ -258,7 +323,7 @@ const UIController = (function(){  // I.F.I. Function
 
 // App Controller represent application runtime state
 
-const App = (function(ItemController, UIController){
+const App = (function(ItemController,StorageController, UIController){
     // Load event listeners
     const loadEventListeners = function(){
       // Get UI selectors
@@ -279,16 +344,16 @@ const App = (function(ItemController, UIController){
     document.querySelector(UISelectors.itemList).addEventListener('click', itemEditClick);
 
       // Update item event
-     document.querySelector(UISelectors.updateBtn).addEventListener('click', itemUpdateSubmit);
+    document.querySelector(UISelectors.updateBtn).addEventListener('click', itemUpdateSubmit);
      
      // back btn event
-     document.querySelector(UISelectors.backtBtn).addEventListener('click', UIController.clearEditState);
+    document.querySelector(UISelectors.backtBtn).addEventListener('click', UIController.clearEditState);
     
      // delete btn event
-     document.querySelector(UISelectors.deleteBtn).addEventListener('click', itemDeleteSubmit);
+    document.querySelector(UISelectors.deleteBtn).addEventListener('click', itemDeleteSubmit);
      
      // delete all btn event
-     document.querySelector(UISelectors.clearAllBtn).addEventListener('click', clearAllItemsClick);
+    document.querySelector(UISelectors.clearAllBtn).addEventListener('click', clearAllItemsClick);
   
   
     }
@@ -310,7 +375,11 @@ const App = (function(ItemController, UIController){
        
       // show up total calories to UI
       UIController.showTotalCalories(totalCalories);
-       // clear input fields
+    
+      // store in localStorage
+      StorageController.storeItem(newItem);
+       
+      // clear input fields
       UIController.clearInput();
   
       e.preventDefault();
@@ -349,6 +418,9 @@ const App = (function(ItemController, UIController){
        
          // show up total calories to UI
          UIController.showTotalCalories(totalCalories);
+        
+         // Update localstorage
+         StorageController.updateItemStorage(updatedItem);
          
          UIController.clearEditState();
       
@@ -370,6 +442,9 @@ const App = (function(ItemController, UIController){
        
     // show up total calories to UI
     UIController.showTotalCalories(totalCalories);
+
+      // Update localstorage
+      StorageController.deleteItemFromStorage(currentItem.id);
     
     UIController.clearEditState();
  
@@ -386,8 +461,11 @@ const App = (function(ItemController, UIController){
     // show up total calories to UI
     UIController.showTotalCalories(totalCalories);
 
-    // clear all items from UI
+    // clear all items from UI clear all btn
     UIController.removeAll();
+
+    // clear all items from localstorage using clear all btn
+    StorageController.clearItemsFromStorage();
 
     // hide the ul list afer all data has been clear
     UIController.hideList();
@@ -423,7 +501,7 @@ const App = (function(ItemController, UIController){
       }
     }
     
-  })(ItemController, UIController);
+  })(ItemController, StorageController, UIController);
   
   // Initialize App
   App.init();
